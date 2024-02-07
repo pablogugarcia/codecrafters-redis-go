@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 )
@@ -29,13 +31,20 @@ func main() {
 func handleCoon(c net.Conn) error {
 	defer c.Close()
 
-	buf := []byte("+PONG\r\n")
+	for {
+		_, err := c.Read(make([]byte, 0))
+		if errors.Is(err, io.EOF) {
+			break
+		}
 
-	n, err := c.Write(buf)
-	fmt.Printf("%d bytes written \n", n)
+		buf := []byte("+PONG\r\n")
 
-	if err != nil {
-		return fmt.Errorf("error writting: %v", err)
+		n, err := c.Write(buf)
+		fmt.Printf("%d bytes written \n", n)
+
+		if err != nil {
+			return fmt.Errorf("error writting: %v", err)
+		}
 	}
 
 	return nil
