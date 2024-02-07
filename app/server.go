@@ -15,9 +15,26 @@ func main() {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
-	_, err = l.Accept()
+	conn, err := l.Accept()
 	if err != nil {
 		fmt.Println("Error accepting connection: ", err.Error())
 		os.Exit(1)
 	}
+
+	handleCoon(conn)
+}
+
+func handleCoon(c net.Conn) error {
+	defer c.Close()
+
+	buf := []byte("+PONG\r\n")
+
+	n, err := c.Write(buf)
+	fmt.Printf("%d bytes written \n", n)
+
+	if err != nil {
+		return fmt.Errorf("error writting: %v", err)
+	}
+
+	return nil
 }
