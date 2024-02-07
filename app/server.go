@@ -24,7 +24,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		handleCoon(conn)
+		go handleCoon(conn)
 	}
 }
 
