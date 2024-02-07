@@ -32,14 +32,13 @@ func handleCoon(c net.Conn) error {
 	defer c.Close()
 
 	for {
-		_, err := c.Read(make([]byte, 0))
+		buf := make([]byte, 128)
+		_, err := c.Read(buf)
 		if errors.Is(err, io.EOF) {
 			break
 		}
 
-		buf := []byte("+PONG\r\n")
-
-		n, err := c.Write(buf)
+		n, err := c.Write([]byte("+PONG\r\n"))
 		fmt.Printf("%d bytes written \n", n)
 
 		if err != nil {
