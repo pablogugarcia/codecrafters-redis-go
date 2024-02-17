@@ -2,6 +2,7 @@ package resp
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"strconv"
@@ -122,15 +123,26 @@ func NewEncoder(w io.Writer) *Encoder {
 
 func (e *Encoder) Encode(v RESP) error {
 	r := make([]byte, v.Count)
+	fmt.Printf("The type is: %s\n", string(v.Type))
 	if v.Type == BulkString {
-		length := len([]byte(v.Parsed))
+		length := fmt.Sprintf("%d", len([]byte(v.Parsed)))
 		r = append(r, BulkString)
-		r = append(r, byte(length))
+		r = append(r, []byte(length)...)
+		r = append(r, []byte(CRLF)...)
 		r = append(r, []byte(v.Parsed)...)
+		r = append(r, []byte(CRLF)...)
+
+	}
+	if v.Type == String {
+		r = append(r, String)
+		r = append(r, []byte(v.Parsed)...)
+		r = append(r, []byte(CRLF)...)
 	}
 
+	fmt.Printf("Writing the response: %s \n", string(r))
 	_, err := e.wr.Write(r)
 	if err != nil {
+		fmt.Printf("Error writting the response: %v \n", err)
 		return err
 	}
 

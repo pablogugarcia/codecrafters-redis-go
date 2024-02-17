@@ -46,36 +46,32 @@ func handleCoon(c net.Conn) error {
 			return fmt.Errorf("error writting: %v", err)
 		}
 
-		if strings.ToLower(string(r.Parsed)) == "ping" {
-			err := resp.NewEncoder(c).Encode(resp.RESP{
-				Type:   resp.String,
-				Parsed: []byte("PONG"),
-			})
-			if err != nil {
-				return err
-			}
-
-			return nil
-		}
-
 		if r.Type == resp.Array {
-
-			if strings.ToLower(string(r.Elems[0].Parsed)) == "echo" {
+			if strings.ToLower(string(r.Elems[0].Parsed)) == "ping" {
 
 				err := resp.NewEncoder(c).Encode(resp.RESP{
 					Type:   resp.String,
+					Parsed: []byte("PONG"),
+				})
+				if err != nil {
+
+					return err
+				}
+				continue
+
+			}
+			if strings.ToLower(string(r.Elems[0].Parsed)) == "echo" {
+
+				err := resp.NewEncoder(c).Encode(resp.RESP{
+					Type:   resp.BulkString,
 					Parsed: []byte(r.Elems[1].Parsed),
 				})
 				if err != nil {
 					return err
 				}
-
-				return nil
+				continue
 			}
 		}
-
-		n, err := c.Write([]byte("+PONG\r\n"))
-		fmt.Printf("%d bytes written \n", n)
 
 		if err != nil {
 			return fmt.Errorf("error writting: %v", err)
