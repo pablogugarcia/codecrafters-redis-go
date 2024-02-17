@@ -6,6 +6,9 @@ import (
 	"io"
 	"net"
 	"os"
+	"strings"
+
+	"github.com/codecrafters-io/redis-starter-go/app/protocols/resp"
 )
 
 func main() {
@@ -36,6 +39,39 @@ func handleCoon(c net.Conn) error {
 		_, err := c.Read(buf)
 		if errors.Is(err, io.EOF) {
 			break
+		}
+
+		r, err := resp.New(buf)
+		if err != nil {
+			return fmt.Errorf("error writting: %v", err)
+		}
+
+		if strings.ToLower(string(r.Parsed)) == "ping" {
+			err := resp.NewEncoder(c).Encode(resp.RESP{
+				Type:   resp.String,
+				Parsed: []byte("PONG"),
+			})
+			if err != nil {
+				return err
+			}
+
+			return nil
+		}
+
+		if r.Type == resp.Array {
+
+			if strings.ToLower(string(r.Elems[0].Parsed)) == "echo" {
+
+				err := resp.NewEncoder(c).Encode(resp.RESP{
+					Type:   resp.String,
+					Parsed: []byte(r.Elems[1].Parsed),
+				})
+				if err != nil {
+					return err
+				}
+
+				return nil
+			}
 		}
 
 		n, err := c.Write([]byte("+PONG\r\n"))
