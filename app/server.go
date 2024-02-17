@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocols/resp"
+	"github.com/codecrafters-io/redis-starter-go/app/storage"
 )
 
 func main() {
@@ -65,6 +66,30 @@ func handleCoon(c net.Conn) error {
 				err := resp.NewEncoder(c).Encode(resp.RESP{
 					Type:   resp.BulkString,
 					Parsed: []byte(r.Elems[1].Parsed),
+				})
+				if err != nil {
+					return err
+				}
+				continue
+			}
+
+			if strings.ToLower(string(r.Elems[0].Parsed)) == "set" {
+				storage.DefaultStore.Set(string(r.Elems[1].Parsed), string(r.Elems[2].Parsed))
+				err := resp.NewEncoder(c).Encode(resp.RESP{
+					Type:   resp.String,
+					Parsed: []byte("OK"),
+				})
+				if err != nil {
+					return err
+				}
+				continue
+			}
+
+			if strings.ToLower(string(r.Elems[0].Parsed)) == "get" {
+				v, _ := storage.DefaultStore.Get(string(r.Elems[1].Parsed))
+				err := resp.NewEncoder(c).Encode(resp.RESP{
+					Type:   resp.BulkString,
+					Parsed: []byte(v),
 				})
 				if err != nil {
 					return err
