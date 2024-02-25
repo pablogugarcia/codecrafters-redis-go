@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/codecrafters-io/redis-starter-go/app/commands"
 	"github.com/codecrafters-io/redis-starter-go/app/protocols/resp"
 	"github.com/codecrafters-io/redis-starter-go/app/storage"
 )
@@ -50,35 +51,30 @@ func handleCoon(c net.Conn) error {
 		if r.Type == resp.Array {
 			if strings.ToLower(string(r.Elems[0].Parsed)) == "ping" {
 
-				err := resp.NewEncoder(c).Encode(resp.RESP{
-					Type:   resp.String,
-					Parsed: []byte("PONG"),
-				})
+				err := resp.NewEncoder(c).WriteString([]byte("PONG")).Encode()
 				if err != nil {
-
 					return err
 				}
-				continue
 
 			}
 			if strings.ToLower(string(r.Elems[0].Parsed)) == "echo" {
 
-				err := resp.NewEncoder(c).Encode(resp.RESP{
-					Type:   resp.BulkString,
-					Parsed: []byte(r.Elems[1].Parsed),
-				})
+				err := resp.NewEncoder(c).WriteBulkString(r.Elems[1].Parsed).Encode()
 				if err != nil {
 					return err
 				}
 				continue
 			}
-
 			if strings.ToLower(string(r.Elems[0].Parsed)) == "set" {
-				storage.DefaultStore.Set(string(r.Elems[1].Parsed), string(r.Elems[2].Parsed))
-				err := resp.NewEncoder(c).Encode(resp.RESP{
-					Type:   resp.String,
-					Parsed: []byte("OK"),
-				})
+
+				opts := make([]string, 0)
+				for _, v := range r.Elems {
+					fmt.Println("Elem: " + string(v.Parsed))
+					opts = append(opts, string(v.Parsed))
+				}
+				out := commands.NewSet(string(r.Elems[1].Parsed), string(r.Elems[2].Parsed), opts)
+				storage.DefaultStore.Set(string(out.K), out.Val, out.GetMetadata())
+				err := resp.NewEncoder(c).WriteString([]byte("OK")).Encode()
 				if err != nil {
 					return err
 				}
@@ -86,14 +82,10 @@ func handleCoon(c net.Conn) error {
 			}
 
 			if strings.ToLower(string(r.Elems[0].Parsed)) == "get" {
-				v, _ := storage.DefaultStore.Get(string(r.Elems[1].Parsed))
-				err := resp.NewEncoder(c).Encode(resp.RESP{
-					Type:   resp.BulkString,
-					Parsed: []byte(v),
-				})
-				if err != nil {
-					return err
-				}
+				cmd := commands.NewGet(string(r.Elems[1].Parsed), storage.DefaultStore)
+				out := cmd.Execute()
+				fmt.Printf("Get out: %s\n", out)
+				c.Write([]byte(out))
 				continue
 			}
 		}

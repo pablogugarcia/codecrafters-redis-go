@@ -1,6 +1,7 @@
 package resp
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -31,6 +32,7 @@ const (
 )
 
 const CRLF = "\r\n"
+const NullBulkString = "$-1\r\n"
 
 func New(b []byte) (*RESP, error) {
 	return parse(b)
@@ -114,33 +116,29 @@ func parse(d []byte) (*RESP, error) {
 }
 
 type Encoder struct {
-	wr io.Writer
+	result bytes.Buffer
+	wr     io.Writer
 }
 
 func NewEncoder(w io.Writer) *Encoder {
-	return &Encoder{w}
+	return &Encoder{bytes.Buffer{}, w}
 }
 
-func (e *Encoder) Encode(v RESP) error {
-	r := make([]byte, v.Count)
-	fmt.Printf("The type is: %s\n", string(v.Type))
-	if v.Type == BulkString {
-		length := fmt.Sprintf("%d", len([]byte(v.Parsed)))
-		r = append(r, BulkString)
-		r = append(r, []byte(length)...)
-		r = append(r, []byte(CRLF)...)
-		r = append(r, []byte(v.Parsed)...)
-		r = append(r, []byte(CRLF)...)
+func (e *Encoder) WriteString(v []byte) *Encoder {
+	toWrite := bytes.Join([][]byte{{String}, v, []byte(CRLF)}, []byte{})
+	e.result.Write(toWrite)
+	return e
+}
 
-	}
-	if v.Type == String {
-		r = append(r, String)
-		r = append(r, []byte(v.Parsed)...)
-		r = append(r, []byte(CRLF)...)
-	}
+func (e *Encoder) WriteBulkString(v []byte) *Encoder {
+	length := fmt.Sprintf("%d", len([]byte(v)))
+	toWrite := bytes.Join([][]byte{{BulkString}, []byte(length), v, []byte(CRLF)}, []byte{})
+	e.result.Write(toWrite)
+	return e
+}
 
-	fmt.Printf("Writing the response: %s \n", string(r))
-	_, err := e.wr.Write(r)
+func (e *Encoder) Encode() error {
+	_, err := e.wr.Write(e.result.Bytes())
 	if err != nil {
 		fmt.Printf("Error writting the response: %v \n", err)
 		return err
