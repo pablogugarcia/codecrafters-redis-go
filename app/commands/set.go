@@ -12,7 +12,7 @@ type Set struct {
 	Opts []string
 }
 
-func NewSet(v string, k string, opts []string) *Set {
+func NewSet(k string, v string, opts []string) *Set {
 	return &Set{k, v, opts}
 }
 

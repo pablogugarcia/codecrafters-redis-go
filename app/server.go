@@ -85,7 +85,10 @@ func handleCoon(c net.Conn) error {
 				cmd := commands.NewGet(string(r.Elems[1].Parsed), storage.DefaultStore)
 				out := cmd.Execute()
 				fmt.Printf("Get out: %s\n", out)
-				c.Write([]byte(out))
+				err := resp.NewEncoder(c).WriteBulkString([]byte(out)).Encode()
+				if err != nil {
+					return err
+				}
 				continue
 			}
 		}

@@ -32,7 +32,7 @@ const (
 )
 
 const CRLF = "\r\n"
-const NullBulkString = "$-1\r\n"
+const NullBulkString = "$-1"
 
 func New(b []byte) (*RESP, error) {
 	return parse(b)
@@ -131,13 +131,22 @@ func (e *Encoder) WriteString(v []byte) *Encoder {
 }
 
 func (e *Encoder) WriteBulkString(v []byte) *Encoder {
-	length := fmt.Sprintf("%d", len([]byte(v)))
-	toWrite := bytes.Join([][]byte{{BulkString}, []byte(length), v, []byte(CRLF)}, []byte{})
+	if string(v) == "" {
+		return e
+	}
+	length := fmt.Sprintf("%d", len(v))
+	fmt.Printf("Len: %s", length)
+	toWrite := bytes.Join([][]byte{{BulkString}, []byte(length), []byte(CRLF), v, []byte(CRLF)}, []byte{})
+	fmt.Printf("To write: %s", toWrite)
 	e.result.Write(toWrite)
 	return e
 }
 
 func (e *Encoder) Encode() error {
+	if e.result.Len() == 0 {
+		e.wr.Write([]byte("$-1\r\n"))
+		return nil
+	}
 	_, err := e.wr.Write(e.result.Bytes())
 	if err != nil {
 		fmt.Printf("Error writting the response: %v \n", err)

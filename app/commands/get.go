@@ -1,9 +1,8 @@
 package commands
 
 import (
+	"fmt"
 	"time"
-
-	"github.com/codecrafters-io/redis-starter-go/app/protocols/resp"
 )
 
 type Get struct {
@@ -25,7 +24,8 @@ func NewGet(k string, getter Getter) *Get {
 
 func (g *Get) Execute() string {
 	if !g.ok {
-		return resp.NullBulkString
+		fmt.Printf("Key: %s, ok is %v, value %s\n", g.K, g.ok, g.value)
+		return ""
 	}
 	for k := range g.metadata {
 		if k == "expires" {
@@ -34,7 +34,7 @@ func (g *Get) Execute() string {
 				panic("metadata expires must be time.Time")
 			}
 			if time.Now().After(dur) {
-				return resp.NullBulkString
+				return ""
 			}
 		}
 	}
